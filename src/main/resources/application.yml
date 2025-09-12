@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: tax-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  redis:
+    host: localhost
+    port: 6379
+#    password: Password123
+    timeout: 5000
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: tax_group
+    admin:
+      auto-create: false
+
+  cloud:
+    azure:
+      servicebus:
+        connection-string: "Endpoint=sb://<your-namespace>.servicebus.windows.net/;SharedAccessKeyName=<policy>;SharedAccessKey=<key>"
+        queue-name: my-queue
+
+api:
+  service:
+    code: TS
+
+internal:
+  errorcode:
+    prefix: IE
+
+business:
+  errorcode:
+    prefix: BE
+
+swagger:
+  baseurl: http://127.0.0.1:8080
+
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    deep-linking: true
+    doc-expansion: none
+
+server:
+  port: 8080
+  servlet:
+    context-path: /tax-service
