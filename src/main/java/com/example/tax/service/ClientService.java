@@ -1,6 +1,6 @@
 package com.example.tax.service;
 
-import com.core.lib.dto.onboarding.ClientDto;
+import com.core.lib.model.ClientDto;
 
 public interface ClientService {
 

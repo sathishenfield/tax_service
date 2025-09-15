@@ -1,6 +1,6 @@
 package com.example.tax.controller;
 
-import com.core.lib.dto.onboarding.ClientDto;
+import com.core.lib.model.ClientDto;
 import com.example.tax.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

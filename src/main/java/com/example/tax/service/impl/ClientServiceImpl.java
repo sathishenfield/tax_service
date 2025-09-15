@@ -1,11 +1,11 @@
 package com.example.tax.service.impl;
 
-import com.core.lib.dto.onboarding.ClientContactDto;
-import com.core.lib.dto.onboarding.ClientDto;
 import com.core.lib.entity.Client;
 import com.core.lib.entity.ClientContact;
 import com.core.lib.entity.Country;
 import com.core.lib.exception.BusinessException;
+import com.core.lib.model.ClientContactDto;
+import com.core.lib.model.ClientDto;
 import com.example.tax.repository.ClientRepository;
 import com.example.tax.repository.CountryRepository;
 import com.example.tax.service.ClientService;
@@ -92,41 +92,66 @@ public class ClientServiceImpl implements ClientService {
 
         try {
             Client client = clientRepository.findById(clientId)
-                    .orElseThrow(() -> new BusinessException("400","Client not found with id " + clientId));
+                    .orElseThrow(() -> new RuntimeException("Client not found with id " + clientId));
 
-            modelMapper.map(clientDto, client);
+            updateClientFields(client,clientDto);
 
-            // Update contacts (add / update / delete)
+            Map<Long, ClientContact> existingContacts = client.getContacts().stream()
+                    .collect(Collectors.toMap(ClientContact::getContactId, c -> c));
+
+            List<ClientContact> updatedContacts = new ArrayList<>();
+
             if (clientDto.getContacts() != null) {
-                Map<Long, ClientContact> existingContactsMap = client.getContacts().stream()
-                        .collect(Collectors.toMap(ClientContact::getContactId, c -> c));
-
-                List<ClientContact> finalContacts = new ArrayList<>();
-
-                for (ClientContactDto contactDTO : clientDto.getContacts()) {
-                    if (contactDTO.getContactId() != null && existingContactsMap.containsKey(contactDTO.getContactId())) {
-                        // update existing
-                        ClientContact existing = existingContactsMap.get(contactDTO.getContactId());
-                        modelMapper.map(contactDTO, existing);
-                        existing.setClient(client);
-                        finalContacts.add(existing);
-                        existingContactsMap.remove(contactDTO.getContactId());
+                for (ClientContactDto contactDto : clientDto.getContacts()) {
+                    if (contactDto.getContactId() != null) {
+                        ClientContact contact = existingContacts.get(contactDto.getContactId());
+                        if (contact == null) {
+                            throw new RuntimeException("Contact not found with id " + contactDto.getContactId());
+                        }
+                        contact.setContactType(contactDto.getContactType());
+                        contact.setContactValue(contactDto.getContactValue());
+                        contact.setIsPrimary(contactDto.getIsPrimary());
+                        updatedContacts.add(contact);
                     } else {
-                        // new contact
-                        ClientContact newContact = modelMapper.map(contactDTO, ClientContact.class);
+                        ClientContact newContact = new ClientContact();
+                        newContact.setContactType(contactDto.getContactType());
+                        newContact.setContactValue(contactDto.getContactValue());
+                        newContact.setIsPrimary(contactDto.getIsPrimary());
                         newContact.setClient(client);
-                        finalContacts.add(newContact);
+                        updatedContacts.add(newContact);
                     }
                 }
-                client.getContacts().clear();
-                client.getContacts().addAll(finalContacts);
             }
-            return modelMapper.map(clientRepository.save(client), ClientDto.class);
+            client.getContacts().clear();
+            client.getContacts().addAll(updatedContacts);
+
+            Client saved = clientRepository.save(client);
+            return modelMapper.map(saved, ClientDto.class);
+
+        } catch (BusinessException be) {
+            log.error("BusinessException while updating client id={}: {}", clientId, be.getMessage());
+            throw be;
         } catch (Exception e) {
-            log.error("BusinessException while updating client id={}: {}", clientId, e.getMessage());
+            log.error("Unexpected error while updating client id={}", clientId, e);
             throw new RuntimeException("Failed to update client with id=" + clientId, e);
         }
     }
+
+    private void updateClientFields(Client client, ClientDto dto) {
+        client.setName(dto.getName());
+        client.setEmail(dto.getEmail());
+        client.setPhoneNumber(dto.getPhoneNumber());
+        client.setAddress(dto.getAddress());
+        client.setPanNumber(dto.getPanNumber());
+        client.setPassportNumber(dto.getPassportNumber());
+        client.setTaxResidencyCountry(dto.getTaxResidencyCountry());
+        client.setKycStatus(dto.getKycStatus());
+        client.setRiskProfile(dto.getRiskProfile());
+        client.setPreferredCurrency(dto.getPreferredCurrency());
+        client.setUpdatedBy(dto.getCreatedBy());
+    }
+
+
 
     @Override
     public void delete(Long clientId) {
